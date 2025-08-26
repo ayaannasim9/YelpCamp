@@ -2,6 +2,7 @@ const express=require('express');
 const mongoose=require('mongoose');
 const path=require('path');
 const Campgrounds=require('./models/campground')
+const ejsMate=require('ejs-mate');
 const methodOverride=require('method-override');
 
 mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp')
@@ -16,6 +17,7 @@ app.set('view engine','ejs');
 app.set('views',path.join(__dirname,'views'));
 app.use(express.urlencoded({extended:true}));
 app.use(methodOverride('_method'));
+app.engine('ejs',ejsMate);      // “Whenever you render an .ejs file, don’t use the default EJS renderer—use ejs-mate instead.”
 
 app.get('/',(req,res)=>{
     res.send('Hello from yelpcamp')
