@@ -40,15 +40,19 @@ app.get('/campgrounds/new',(req,res)=>{
 
 app.get('/campgrounds/:id',async (req,res)=>{
     const {id}=req.params;
-    const camp=await Campgrounds.findById(id);
-    res.render('campground/show',{camp})
+    const campground=await Campgrounds.findById(id);
+    res.render('campground/show',{campground})
 })
 
 app.patch('/campgrounds/:id',async (req,res)=>{
-    const {title,location}=req.body.campground;
+    const {title,location, image, price, description}=req.body.campground;
+    const p=parseInt(price);
     const updatedCamp=await Campgrounds.findByIdAndUpdate(req.params.id,{
         title,
-        location
+        location,
+        price:p,
+        description,
+        image
     },{new:true});
     res.redirect(`/campgrounds/${updatedCamp._id}`);
 })
@@ -59,8 +63,8 @@ app.delete('/campgrounds/:id',async (req,res)=>{
 })
 
 app.get('/campgrounds/:id/edit',async (req,res)=>{
-    const camp=await Campgrounds.findById(req.params.id);
-    res.render('campground/edit',{camp});
+    const campground=await Campgrounds.findById(req.params.id);
+    res.render('campground/edit',{campground});
 })
 
 app.listen(port,()=>{
