@@ -4,6 +4,7 @@ const path=require('path');
 const Campgrounds=require('./models/campground')
 const ejsMate=require('ejs-mate');
 const methodOverride=require('method-override');
+const asyncWrapper=require('./utils/AsyncWrapper')
 
 mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp')
 .then(()=>{
@@ -23,28 +24,28 @@ app.get('/',(req,res)=>{
     res.send('Hello from yelpcamp')
 })
 
-app.get('/campgrounds',async (req,res)=>{
+app.get('/campgrounds',asyncWrapper(async (req,res,next)=>{
     const campgrounds=await Campgrounds.find({});
     res.render('campground/index',{campgrounds});
-})
+}))
 
-app.post('/campgrounds',async (req,res)=>{
+app.post('/campgrounds',asyncWrapper(async (req,res,next)=>{
     const camp=new Campgrounds(req.body.campground);
     await camp.save();
     res.redirect(`/campgrounds/${camp._id}`);
-})
+}))
 
 app.get('/campgrounds/new',(req,res)=>{
     res.render('campground/new');
 })
 
-app.get('/campgrounds/:id',async (req,res)=>{
+app.get('/campgrounds/:id',asyncWrapper(async (req,res,next)=>{
     const {id}=req.params;
     const campground=await Campgrounds.findById(id);
     res.render('campground/show',{campground})
-})
+}))
 
-app.patch('/campgrounds/:id',async (req,res)=>{
+app.patch('/campgrounds/:id',asyncWrapper(async (req,res,next)=>{
     const {title,location, image, price, description}=req.body.campground;
     const p=parseInt(price);
     const updatedCamp=await Campgrounds.findByIdAndUpdate(req.params.id,{
@@ -55,16 +56,20 @@ app.patch('/campgrounds/:id',async (req,res)=>{
         image
     },{new:true});
     res.redirect(`/campgrounds/${updatedCamp._id}`);
-})
+}))
 
-app.delete('/campgrounds/:id',async (req,res)=>{
+app.delete('/campgrounds/:id',asyncWrapper(async (req,res,next)=>{
     await Campgrounds.findByIdAndDelete(req.params.id);
     res.redirect('/campgrounds');
-})
+}));
 
-app.get('/campgrounds/:id/edit',async (req,res)=>{
+app.get('/campgrounds/:id/edit',asyncWrapper(async (req,res,next)=>{
     const campground=await Campgrounds.findById(req.params.id);
     res.render('campground/edit',{campground});
+}))
+
+app.use((err,req,res,next)=>{
+    res.send('something went wrong. We will be working on it');
 })
 
 app.listen(port,()=>{
