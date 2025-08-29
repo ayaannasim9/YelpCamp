@@ -5,6 +5,7 @@ const Campgrounds=require('./models/campground')
 const ejsMate=require('ejs-mate');
 const methodOverride=require('method-override');
 const asyncWrapper=require('./utils/AsyncWrapper')
+const ExpressError=require('./utils/ExpressError');
 
 mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp')
 .then(()=>{
@@ -30,6 +31,7 @@ app.get('/campgrounds',asyncWrapper(async (req,res,next)=>{
 }))
 
 app.post('/campgrounds',asyncWrapper(async (req,res,next)=>{
+    if(!req.body.campground) throw new ExpressError('Empty Data',400);
     const camp=new Campgrounds(req.body.campground);
     await camp.save();
     res.redirect(`/campgrounds/${camp._id}`);
@@ -68,8 +70,16 @@ app.get('/campgrounds/:id/edit',asyncWrapper(async (req,res,next)=>{
     res.render('campground/edit',{campground});
 }))
 
+app.all(/(.*)/,(req,res,next)=>{
+    // res.send('404 not found');
+    next(new ExpressError('Page not found',404));
+})
+
 app.use((err,req,res,next)=>{
-    res.send('something went wrong. We will be working on it');
+    const {status=500}=err;
+    if(!err.message) err.message='Something went wrong';
+    res.status(status).render('error',{err});
+    // res.send('something went wrong. We will be working on it');
 })
 
 app.listen(port,()=>{
