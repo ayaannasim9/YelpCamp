@@ -7,6 +7,7 @@ const methodOverride=require('method-override');
 const asyncWrapper=require('./utils/AsyncWrapper')
 const ExpressError=require('./utils/ExpressError');
 const Joi=require('joi');
+const {campgroundSchema}=require('./schemas')
 
 mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp')
 .then(()=>{
@@ -22,6 +23,16 @@ app.use(express.urlencoded({extended:true}));
 app.use(methodOverride('_method'));
 app.engine('ejs',ejsMate);      // “Whenever you render an .ejs file, don’t use the default EJS renderer—use ejs-mate instead.”
 
+const validateCampground=(req,res,next)=>{
+    const {error}=campgroundSchema.validate(req.body);
+    if(error){
+        const msg=error.details.map(e=>e.message).join(',');
+        throw new ExpressError(msg,400);
+    }else{
+        next();
+    }
+}
+
 app.get('/',(req,res)=>{
     res.send('Hello from yelpcamp')
 })
@@ -31,23 +42,7 @@ app.get('/campgrounds',asyncWrapper(async (req,res,next)=>{
     res.render('campground/index',{campgrounds});
 }))
 
-app.post('/campgrounds',asyncWrapper(async (req,res,next)=>{
-    // if(!req.body.campground) throw new ExpressError('Empty Data',400);
-    const campgroundSchema=Joi.object({
-        camground:Joi.object({
-            title:Joi.string().required(),
-            image:Joi.string(),
-            price:Joi.number().min(0).required(),
-            description:Joi.string().required(),
-            location:Joi.string().required(),
-        }).required()
-    })
-
-    const {error}=campgroundSchema.validate(req.body);
-    if(error){
-        const msg=error.details.map(e=>e.message).join(',');
-        throw new ExpressError(msg,400);
-    }
+app.post('/campgrounds',validateCampground,asyncWrapper(async (req,res,next)=>{
     const camp=new Campgrounds(req.body.campground);
     await camp.save();
     res.redirect(`/campgrounds/${camp._id}`);
@@ -63,7 +58,7 @@ app.get('/campgrounds/:id',asyncWrapper(async (req,res,next)=>{
     res.render('campground/show',{campground})
 }))
 
-app.patch('/campgrounds/:id',asyncWrapper(async (req,res,next)=>{
+app.patch('/campgrounds/:id',validateCampground,asyncWrapper(async (req,res,next)=>{
     const {title,location, image, price, description}=req.body.campground;
     const p=parseInt(price);
     const updatedCamp=await Campgrounds.findByIdAndUpdate(req.params.id,{
