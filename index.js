@@ -6,6 +6,7 @@ const ejsMate=require('ejs-mate');
 const methodOverride=require('method-override');
 const asyncWrapper=require('./utils/AsyncWrapper')
 const ExpressError=require('./utils/ExpressError');
+const Joi=require('joi');
 
 mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp')
 .then(()=>{
@@ -31,7 +32,22 @@ app.get('/campgrounds',asyncWrapper(async (req,res,next)=>{
 }))
 
 app.post('/campgrounds',asyncWrapper(async (req,res,next)=>{
-    if(!req.body.campground) throw new ExpressError('Empty Data',400);
+    // if(!req.body.campground) throw new ExpressError('Empty Data',400);
+    const campgroundSchema=Joi.object({
+        camground:Joi.object({
+            title:Joi.string().required(),
+            image:Joi.string(),
+            price:Joi.number().min(0).required(),
+            description:Joi.string().required(),
+            location:Joi.string().required(),
+        }).required()
+    })
+
+    const {error}=campgroundSchema.validate(req.body);
+    if(error){
+        const msg=error.details.map(e=>e.message).join(',');
+        throw new ExpressError(msg,400);
+    }
     const camp=new Campgrounds(req.body.campground);
     await camp.save();
     res.redirect(`/campgrounds/${camp._id}`);
