@@ -9,6 +9,7 @@ const ExpressError=require('./utils/ExpressError');
 const Joi=require('joi');
 const {campgroundSchema,reviewSchema}=require('./schemas')
 const Review = require('./models/review');
+const campgroundRoutes=require('./routes/campgrounds');
 
 
 mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp')
@@ -24,6 +25,8 @@ app.set('views',path.join(__dirname,'views'));
 app.use(express.urlencoded({extended:true}));
 app.use(methodOverride('_method'));
 app.engine('ejs',ejsMate);      // “Whenever you render an .ejs file, don’t use the default EJS renderer—use ejs-mate instead.”
+
+app.use('/campgrounds',campgroundRoutes);
 
 const validateCampground=(req,res,next)=>{
     const {error}=campgroundSchema.validate(req.body);
@@ -49,49 +52,7 @@ app.get('/',(req,res)=>{
     res.send('Hello from yelpcamp')
 })
 
-app.get('/campgrounds',asyncWrapper(async (req,res,next)=>{
-    const campgrounds=await Campgrounds.find({});
-    res.render('campground/index',{campgrounds});
-}))
 
-app.post('/campgrounds',validateCampground,asyncWrapper(async (req,res,next)=>{
-    const camp=new Campgrounds(req.body.campground);
-    await camp.save();
-    res.redirect(`/campgrounds/${camp._id}`);
-}))
-
-app.get('/campgrounds/new',(req,res)=>{
-    res.render('campground/new');
-})
-
-app.get('/campgrounds/:id',asyncWrapper(async (req,res,next)=>{
-    const {id}=req.params;
-    const campground=await Campgrounds.findById(id).populate('reviews');
-    res.render('campground/show',{campground})
-}))
-
-app.patch('/campgrounds/:id',validateCampground,asyncWrapper(async (req,res,next)=>{
-    const {title,location, image, price, description}=req.body.campground;
-    const p=parseInt(price);
-    const updatedCamp=await Campgrounds.findByIdAndUpdate(req.params.id,{
-        title,
-        location,
-        price:p,
-        description,
-        image
-    },{new:true});
-    res.redirect(`/campgrounds/${updatedCamp._id}`);
-}))
-
-app.delete('/campgrounds/:id',asyncWrapper(async (req,res,next)=>{
-    await Campgrounds.findByIdAndDelete(req.params.id);
-    res.redirect('/campgrounds');
-}));
-
-app.get('/campgrounds/:id/edit',asyncWrapper(async (req,res,next)=>{
-    const campground=await Campgrounds.findById(req.params.id);
-    res.render('campground/edit',{campground});
-}))
 
 app.post('/campgrounds/:id/reviews',validateReview,asyncWrapper(async(req,res,next)=>{
     const campground=await Campgrounds.findById(req.params.id);
