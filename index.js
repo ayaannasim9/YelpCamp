@@ -1,15 +1,16 @@
 const express=require('express');
 const mongoose=require('mongoose');
 const path=require('path');
-const Campgrounds=require('./models/campground')
+const Campgrounds=require('./models/campground');
 const ejsMate=require('ejs-mate');
 const methodOverride=require('method-override');
 const asyncWrapper=require('./utils/AsyncWrapper')
 const ExpressError=require('./utils/ExpressError');
 const Joi=require('joi');
-const {campgroundSchema,reviewSchema}=require('./schemas')
+const {campgroundSchema,reviewSchema}=require('./schemas');
 const Review = require('./models/review');
 const campgroundRoutes=require('./routes/campgrounds');
+const reviewRoutes=require('./routes/reviews');
 
 
 mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp')
@@ -27,51 +28,15 @@ app.use(methodOverride('_method'));
 app.engine('ejs',ejsMate);      // “Whenever you render an .ejs file, don’t use the default EJS renderer—use ejs-mate instead.”
 
 app.use('/campgrounds',campgroundRoutes);
+app.use('/campgrounds/:id/reviews',reviewRoutes);
 
-const validateCampground=(req,res,next)=>{
-    const {error}=campgroundSchema.validate(req.body);
-    if(error){
-        const msg=error.details.map(e=>e.message).join(',');
-        throw new ExpressError(msg,400);
-    }else{
-        next();
-    }
-}
-
-const validateReview=(req,res,next)=>{
-    const {error}=reviewSchema.validate(req.body);
-    if(error){
-        const msg=error.details.map(e=>e.message).join(',');
-        throw new ExpressError(msg,400);
-    }else{
-        next();
-    }
-}
 
 app.get('/',(req,res)=>{
     res.send('Hello from yelpcamp')
 })
 
 
-
-app.post('/campgrounds/:id/reviews',validateReview,asyncWrapper(async(req,res,next)=>{
-    const campground=await Campgrounds.findById(req.params.id);
-    const review=new Review(req.body.review);
-    campground.reviews.push(review);
-    await review.save();
-    await campground.save();
-    res.redirect(`/campgrounds/${campground._id}`);
-}))
-
-app.delete('/campgrounds/:id/reviews/:reviewId',asyncWrapper(async (req,res,next)=>{
-    // res.send('delte me!');
-    const {id,reviewId}=req.params;
-    await Campgrounds.findByIdAndUpdate(id,{$pull:{reviews:reviewId}});
-    await Review.findByIdAndDelete(reviewId);
-    res.redirect(`/campgrounds/${id}`);
-}))
-
-app.all(/(.*)/,(req,res,next)=>{
+app.all(/(.*)/,(req,res,next)=>{                        //app.all() matches all HTTP verbs
     // res.send('404 not found');
     next(new ExpressError('Page not found',404));
 })
