@@ -4,6 +4,7 @@ const Campgrounds=require('../models/campground');
 const asyncWrapper=require('../utils/AsyncWrapper');
 const ExpressError=require('../utils/ExpressError');
 const {campgroundSchema,reviewSchema}=require('../schemas')
+const isLoggedIn=require('../middleware');
 
 const validateCampground=(req,res,next)=>{
     const {error}=campgroundSchema.validate(req.body);
@@ -20,14 +21,14 @@ router.get('/',asyncWrapper(async (req,res,next)=>{
     res.render('campground/index',{campgrounds});
 }))
 
-router.post('/',validateCampground,asyncWrapper(async (req,res,next)=>{
+router.post('/',isLoggedIn,validateCampground,asyncWrapper(async (req,res,next)=>{
     const camp=new Campgrounds(req.body.campground);
     await camp.save();
     req.flash('success','successfully made a new campground');
     res.redirect(`/campgrounds/${camp._id}`);
 }))
 
-router.get('/new',(req,res)=>{
+router.get('/new',isLoggedIn,(req,res)=>{
     res.render('campground/new');
 })
 
@@ -41,7 +42,7 @@ router.get('/:id',asyncWrapper(async (req,res,next)=>{
     res.render('campground/show',{campground})
 }))
 
-router.patch('/:id',validateCampground,asyncWrapper(async (req,res,next)=>{
+router.patch('/:id',isLoggedIn,validateCampground,asyncWrapper(async (req,res,next)=>{
     const {title,location, image, price, description}=req.body.campground;
     const p=parseInt(price);
     const updatedCamp=await Campgrounds.findByIdAndUpdate(req.params.id,{
@@ -54,13 +55,13 @@ router.patch('/:id',validateCampground,asyncWrapper(async (req,res,next)=>{
     res.redirect(`/campgrounds/${updatedCamp._id}`);
 }))
 
-router.delete('/:id',asyncWrapper(async (req,res,next)=>{
+router.delete('/:id',isLoggedIn,asyncWrapper(async (req,res,next)=>{
     await Campgrounds.findByIdAndDelete(req.params.id);
     req.flash('success','deleted campground');
     res.redirect('/campgrounds');
 }));
 
-router.get('/:id/edit',asyncWrapper(async (req,res,next)=>{
+router.get('/:id/edit',isLoggedIn,asyncWrapper(async (req,res,next)=>{
     const campground=await Campgrounds.findById(req.params.id);
     if(!campground){
         req.flash('error','cant find campground');
