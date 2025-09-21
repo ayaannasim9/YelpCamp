@@ -16,8 +16,11 @@ router.post('/register',asyncWrapper(async(req,res)=>{
         email,
     })
     const registerdUser=await User.register(user,password);
-    req.flash('success','welcome to yelpcamp');
-    res.redirect('/campgrounds');
+    req.login(registerdUser,(err)=>{
+        if(err) return next(err)
+        req.flash('success','welcome to yelpcamp');
+        res.redirect('/campgrounds');
+    })
 }));
 
 router.get('/login',(req,res)=>{
